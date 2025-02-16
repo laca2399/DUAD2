@@ -1,0 +1,26 @@
+[
+    {
+        "identifier": 12,
+        "title": "Purchase supplies",
+        "description": "Purchase food, desk, and equipment supplies",
+        "status": "Completed"
+    },
+    {
+        "identifier": 56,
+        "title": "Paint Walls",
+        "description": "Paint office walls in blue color",
+        "status": "Pending"
+    },
+    {
+        "identifier": 8,
+        "title": "Organize office",
+        "description": "Clean and organize office setup",
+        "status": "Pending"
+    },
+    {
+        "identifier": 2,
+        "title": "Meeting Creation",
+        "description": "Create a meeting for the team",
+        "status": "In Progress"
+    }
+]
