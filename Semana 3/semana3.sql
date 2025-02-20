@@ -159,11 +159,9 @@ FROM invoice_product
 WHERE product_code = (SELECT code FROM product WHERE id = 1);
 
 --d. Get all purchases grouped by product, showing the total purchased across all purchases.
-SELECT product.name, product.code, 
-    (SELECT SUM(invoice_product.quantity_purchased) 
-    FROM invoice_product 
-    WHERE invoice_product.product_code = product.code) AS total_purchased
-FROM product
+SELECT product_code, SUM(quantity_purchased) AS total_purchased
+FROM invoice_product
+GROUP BY product_code
 ORDER BY total_purchased DESC;
 
 
