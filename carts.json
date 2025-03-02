@@ -1,0 +1,9 @@
+[
+    {
+        "cart_id": "4e0c2a9f6c2e8b45856d559003df6319",
+        "products": [
+            {"product_id": 1233, "quantity": 2},
+            {"product_id": 3452, "quantity": 1}
+        ]
+    }
+]
