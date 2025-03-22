@@ -1,0 +1,45 @@
+import psycopg2
+
+class PgManager:
+    def __init__(self, db_name, user, password, host, port=5432):
+        self.db_name = db_name
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+
+    def create_connection(self):
+        
+        try:
+            connection = psycopg2.connect(
+                dbname=self.db_name,
+                user=self.user,
+                password=self.password,
+                host=self.host,
+                port=self.port,
+            )
+            return connection
+        except Exception as error:
+            print("Error connecting to the database:", error)
+            return None
+
+    def execute_query(self, query, *args):
+        
+        conn = self.create_connection()
+        if not conn:
+            return None
+
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(query, args)
+                conn.commit()
+                
+                if cursor.description:
+                    return cursor.fetchall()  
+        except Exception as e:
+            conn.rollback()
+            print("Error executing query:", e)
+        finally:
+            conn.close()  
+
+        return None
