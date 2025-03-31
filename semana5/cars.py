@@ -4,7 +4,7 @@ from database import PgManager
 cars_bp = Blueprint('cars', __name__)
 db_manager = PgManager(db_name="lyfter_car_rental", user="postgres", password="Lacayo2020!", host="localhost")
 
-@cars_bp.route("/cars", methods=["POST"])
+@cars_bp.route('/', methods=["POST"])
 def create_car():
     data = request.get_json()
     brand = data.get("brand")
@@ -23,7 +23,7 @@ def create_car():
     else:
         return jsonify({"error": "Error when creating car"}), 500
 
-@cars_bp.route("/cars/<int:car_id>/status", methods=["PUT"])
+@cars_bp.route('/<int:car_id>/status', methods=["PUT"])
 def change_car_status(car_id):
     data = request.get_json()
     new_status = data.get("status")  

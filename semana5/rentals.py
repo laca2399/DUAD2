@@ -4,7 +4,7 @@ from database import PgManager
 rentals_bp = Blueprint('rentals', __name__)
 db_manager = PgManager(db_name="lyfter_car_rental", user="postgres", password="Lacayo2020!", host="localhost")
 
-@rentals_bp.route("/rentals", methods=["POST"])
+@rentals_bp.route('/', methods=["POST"])
 def create_rental():
     data = request.get_json()
     user_id = data.get("user_id")
@@ -34,7 +34,7 @@ def create_rental():
     else:
         return jsonify({"error": "Error creating rental"}), 400
 
-@rentals_bp.route("/rentals/<int:rental_id>/complete", methods=["PUT"])
+@rentals_bp.route('/<int:rental_id>/complete', methods=["PUT"])
 def complete_rental(rental_id):
 
     query_rental = "SELECT rental_status, car_id FROM lyfter_car_rental.rentals WHERE rental_id = %s"

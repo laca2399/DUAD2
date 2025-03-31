@@ -5,7 +5,7 @@ users_bp = Blueprint('users', __name__)
 db_manager = PgManager(db_name="lyfter_car_rental", user="postgres", password="Lacayo2020!", host="localhost")
 
 
-@users_bp.route("/users", methods=["POST"])
+@users_bp.route('/', methods=["POST"])
 def create_user():
     data = request.get_json()
     name = data.get("name")
@@ -26,7 +26,7 @@ def create_user():
         return jsonify({"error": "Error when creating user"}), 500
 
 
-@users_bp.route("/users/<int:user_id>/status", methods=["PUT"])
+@users_bp.route('/<int:user_id>/status', methods=["PUT"])
 def change_user_status(user_id):
     data = request.get_json()
     new_status = data.get("status")  
