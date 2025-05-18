@@ -4,11 +4,10 @@ from user_manager import UserDBManager
 from sqlalchemy import create_engine
 
 users_bp = Blueprint('users', __name__)
-engine = create_engine("postgresql+psycopg2://postgres:Lacayo2020!@localhost:5432/postgres")
-db_manager = UserDBManager(engine)
+db_manager = UserDBManager()
 jwt_manager = JWT_Manager()
 
-@users_bp.route('/register', methods=['POST'])
+@users_bp.route('/auth/register', methods=['POST'])
 def register():
     data = request.get_json()
     if not data.get('email') or not data.get('password') or not data.get('name'):
@@ -17,7 +16,7 @@ def register():
     token = jwt_manager.encode(user.id)
     return jsonify(token=token)
 
-@users_bp.route('/login', methods=['POST'])
+@users_bp.route('/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
     user = db_manager.get_user_by_email(data.get('email'))

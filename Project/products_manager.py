@@ -18,7 +18,6 @@ class ProductDBManager(BaseDBManager):
             )
             session.add(product)
             session.commit()
-            session.refresh(product)
             return product
 
     def get_all_products(self):
@@ -35,7 +34,6 @@ class ProductDBManager(BaseDBManager):
             if product:
                 product.quantity = new_quantity
                 session.commit()
-                session.refresh(product)
             return product
 
     def delete_product(self, product_id):

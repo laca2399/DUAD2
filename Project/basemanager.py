@@ -1,9 +1,9 @@
-from sqlalchemy.orm import sessionmaker
+from database import db
+from models import Base
 
 class BaseDBManager:
-    def __init__(self, engine):
-        self.engine = engine
-        self.Session = sessionmaker(bind=engine)
+    def __init__(self):
+        self.Session = db.Session
 
     def get_session(self):
         return self.Session()

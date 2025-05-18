@@ -28,6 +28,8 @@ class SaleDBManager(BaseDBManager):
             if item:
                 session.delete(item)
                 session.commit()
+                return True
+            return False
 
     def checkout_cart(self, cart_id):
         with self.get_session() as session:
@@ -48,6 +50,7 @@ class SaleDBManager(BaseDBManager):
             session.commit()
 
             for item in cart.items:
+                product = session.query(Product).filter_by(id=item.product_id).first()
                 sale = Sale(
                     invoice_id=invoice.id,
                     product_id=item.product_id,
