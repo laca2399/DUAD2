@@ -1,17 +1,19 @@
 from flask import Flask
-from products import app as products_app
-from sales import app as sales_app
-from users_and_authentication import app as auth_app
+from database import db
+from models import Base
+from products import app as products_bp
+from sales import app as sales_bp
+from users import app as users_bp
 
-def create_app():
-    app = Flask(__name__)
+app = Flask(__name__)
 
-    app.register_blueprint(products_app, url_prefix='/products')
-    app.register_blueprint(sales_app, url_prefix='/sales')
-    app.register_blueprint(auth_app, url_prefix='/auth')
+app.register_blueprint(users_bp, url_prefix='/users')
+app.register_blueprint(products_bp, url_prefix='/products')
+app.register_blueprint(sales_bp, url_prefix='/sales')
 
-    return app
+@app.route("/Pet Ecommerce")
+def liveness():
+    return "<p>Welcome to Pet Ecommerce!</p>"
 
 if __name__ == "__main__":
-    app = create_app()
     app.run(debug=True)

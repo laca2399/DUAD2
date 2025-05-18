@@ -1,45 +1,15 @@
-import psycopg2
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-class PgManager:
-    def __init__(self, db_name, user, password, host, port=5432):
-        self.db_name = db_name
-        self.user = user
-        self.password = password
-        self.host = host
-        self.port = port
+class DatabaseConnection:
+    _instance = None
 
-    def create_connection(self):
-        
-        try:
-            connection = psycopg2.connect(
-                dbname=self.db_name,
-                user=self.user,
-                password=self.password,
-                host=self.host,
-                port=self.port,
-            )
-            return connection
-        except Exception as error:
-            print("Error connecting to the database:", error)
-            return None
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            DATABASE_URL = "postgresql+psycopg2://postgres:Lacayo2020!@localhost:5432/postgres"
+            cls._instance.engine = create_engine(DATABASE_URL, echo=False)
+            cls._instance.Session = sessionmaker(bind=cls._instance.engine)
+        return cls._instance
 
-    def execute_query(self, query, *args):
-        
-        conn = self.create_connection()
-        if not conn:
-            return None
-
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(query, args)
-                conn.commit()
-                
-                if cursor.description:
-                    return cursor.fetchall()  
-        except Exception as e:
-            conn.rollback()
-            print("Error executing query:", e)
-        finally:
-            conn.close()  
-
-        return None
+db = DatabaseConnection()
