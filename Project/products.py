@@ -1,90 +1,112 @@
-from flask import Blueprint, request, jsonify
-import json
-from users_and_authentication import check_admin_role
+from flask import Blueprint, request, jsonify, Response
+from jwt_manager import JWT_Manager
+from products_manager import ProductDBManager
+from user_manager import UserDBManager
+from sqlalchemy import create_engine
 
-app = Blueprint('products', __name__)
+products_bp = Blueprint('products', __name__)
+db_manager = ProductDBManager()
+user_manager = UserDBManager()
+jwt_manager = JWT_Manager()
 
-PRODUCTS_FILE = "products.json"
+@products_bp.route('/products', methods=['POST'])
+def create_product():
+    token = request.headers.get('Authorization')
+    decoded = jwt_manager.decode(token.replace("Bearer ", "")) if token else None
+    user = user_manager.get_user_by_id(decoded['sub']) if decoded else None
+    if not user or user.role != "admin":
+        return Response(status=403)
 
-def read_products():
-    try:
-        with open(PRODUCTS_FILE, "r") as file:
-            return json.load(file)
-    except FileNotFoundError:
-        with open(PRODUCTS_FILE, "w") as file:
-            json.dump([], file, indent=4)  
-        return []
+    data = request.get_json()
+    required_fields = ['name', 'sku', 'description', 'price', 'quantity', 'category_id', 'availability_id']
+    if not all(field in data for field in required_fields):
+        return Response(status=400)
 
-def write_products(products):
-    with open(PRODUCTS_FILE, "w") as file:
-        json.dump(products, file, indent=4)
+    product = db_manager.insert_product(
+        name=data['name'],
+        sku=data['sku'],
+        description=data['description'],
+        price=data['price'],
+        quantity=data['quantity'],
+        category_id=data['category_id'],
+        availability_id=data['availability_id']
+    )
 
-@app.route("/products", methods=["GET"])
-def products():
-    products_list = read_products()
-    availability_filter = request.args.get("availability")
-    category_filter = request.args.get("category")
+    return jsonify(
+        id=product.id,
+        name=product.name,
+        sku=product.sku,
+        description=product.description,
+        price=float(product.price),
+        entry_date=product.entry_date.isoformat(),
+        quantity=product.quantity,
+        category_id=product.category_id,
+        availability_id=product.availability_id
+    )
 
-    if availability_filter:
-        products_list = [product for product in products_list if product["availability"] == availability_filter]
+@products_bp.route('/products', methods=['GET'])
+def list_products():
+    products = db_manager.get_all_products()
+    return jsonify([
+        {
+            "id": p.id,
+            "name": p.name,
+            "sku": p.sku,
+            "description": p.description,
+            "price": float(p.price),
+            "entry_date": p.entry_date.isoformat(),
+            "quantity": p.quantity,
+            "category_id": p.category_id,
+            "availability_id": p.availability_id
+        } for p in products
+    ])
 
-    if category_filter:
-        products_list = [product for product in products_list if product["category"] == category_filter]
+@products_bp.route('/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    product = db_manager.get_product_by_id(product_id)
+    if not product:
+        return Response(status=404)
+    return jsonify(
+        id=product.id,
+        name=product.name,
+        sku=product.sku,
+        description=product.description,
+        price=float(product.price),
+        entry_date=product.entry_date.isoformat(),
+        quantity=product.quantity,
+        category_id=product.category_id,
+        availability_id=product.availability_id
+    )
 
-    return jsonify({"data": products_list})
-
-@app.route("/products", methods=["POST"])
-def add_product():
-    admin_check = check_admin_role()
-    if admin_check:
-        return admin_check
-    
-    products_list = read_products()
-    new_product = request.json
-
-    required_fields = ["product_id", "name", "description", "availability", "category", "price", "quantity"]
-    if not all(field in new_product for field in required_fields):
-        return jsonify({"message": "Mandatory Fields are missing."}), 400
-
-    if any(product["product_id"] == new_product["product_id"] for product in products_list):
-        return jsonify({"message": "The identifier already exists."}), 400
-
-    if new_product["availability"] not in ["Available", "Out of Stock", "Pre-order"]:
-        return jsonify({"message": "The status is invalid."}), 400
-    
-    products_list.append(new_product)
-    write_products(products_list)
-    return jsonify({"message": "Product created successfully.", "product": new_product}), 201
-
-@app.route("/products/<int:product_id>", methods=["PUT"])
+@products_bp.route('/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
-    admin_check = check_admin_role()
-    if admin_check:
-        return admin_check
-    
-    products_list = read_products()
-    updated_data = request.json
+    token = request.headers.get('Authorization')
+    decoded = jwt_manager.decode(token.replace("Bearer ", "")) if token else None
+    user = user_manager.get_user_by_id(decoded['sub']) if decoded else None
+    if not user or user.role != "admin":
+        return Response(status=403)
 
-    for product in products_list:
-        if product["product_id"] == product_id:
-            product.update(updated_data)
-            write_products(products_list)
-            return jsonify({"message": "Product updated successfully.", "product": product}), 200
+    data = request.get_json()
+    new_quantity = data.get('quantity')
+    if new_quantity is None:
+        return Response(status=400)
 
-    return jsonify({"message": "Product not found."}), 404
+    product = db_manager.update_stock(product_id, new_quantity)
+    if not product:
+        return Response(status=404)
 
-@app.route("/products/<int:product_id>", methods=["DELETE"])
+    return jsonify(message="Product updated")
+
+@products_bp.route('/products/<int:product_id>', methods=['DELETE'])
 def delete_product(product_id):
-    admin_check = check_admin_role()
-    if admin_check:
-        return admin_check
-    
-    products_list = read_products()
+    token = request.headers.get('Authorization')
+    decoded = jwt_manager.decode(token.replace("Bearer ", "")) if token else None
+    user = user_manager.get_user_by_id(decoded['sub']) if decoded else None
+    if not user or user.role != "admin":
+        return Response(status=403)
 
-    for product in products_list:
-        if product["product_id"] == product_id:
-            products_list.remove(product)
-            write_products(products_list)
-            return jsonify({"message": "Product deleted successfully."}), 200
+    deleted = db_manager.delete_product(product_id)
+    if not deleted:
+        return Response(status=404)
+    return jsonify(message="Product deleted")
 
-    return jsonify({"message": "Product not found."}), 404
