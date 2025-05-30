@@ -24,16 +24,18 @@ def create_product():
 
     product = db_manager.insert_product(data['name'], data['price'], data['quantity'])
 
-    #Invalidate cache for this new product
-    product_key = f"product:{product.id}"
-    current_app.cache.delete_data(product_key)  
 
     return jsonify(id=product.id, name=product.name, price=float(product.price), entry_date=product.entry_date.isoformat(), quantity=product.quantity)
 
 @products_bp.route('/', methods=['GET'])
 def list_products():
+    product_list_key = "product_list"
+    cached_products = current_app.cache.get_data(product_list_key)
+    if cached_products:
+        return jsonify(json.loads(cached_products))
+
     products = db_manager.get_all_products()
-    return jsonify([
+    product_data = [
         {
             "id": p.id,
             "name": p.name,
@@ -41,7 +43,11 @@ def list_products():
             "entry_date": p.entry_date.isoformat(),
             "quantity": p.quantity
         } for p in products
-    ])
+    ]
+
+    current_app.cache.store_data(product_list_key, json.dumps(product_data), time_to_live=300)
+    return jsonify(product_data)
+
 
 @products_bp.route('/<int:product_id>', methods=['GET'])
 def get_product(product_id):
@@ -84,7 +90,10 @@ def update_product(product_id):
         return Response(status=404)
     
     product_key = f"product:{product_id}"
-    current_app.cache.delete_data(product_key) #Invalidate cache only of the updated product
+    current_app.cache.delete_data(product_key)
+
+    product_list_key = "product_list"
+    current_app.cache.delete_data(product_list_key)
 
     return jsonify(message="Product updated")
 
@@ -100,8 +109,10 @@ def delete_product(product_id):
     if not deleted:
         return Response(status=404)
     
-    #Invalidate cache only of the deleted product
     product_key = f"product:{product_id}"
     current_app.cache.delete_data(product_key)
+
+    product_list_key = "product_list"
+    current_app.cache.delete_data(product_list_key)
 
     return jsonify(message="Product deleted")
