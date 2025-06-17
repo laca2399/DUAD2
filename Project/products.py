@@ -1,8 +1,10 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, current_app
 from jwt_manager import JWT_Manager
 from products_manager import ProductDBManager
 from user_manager import UserDBManager
 from sqlalchemy import create_engine
+import json
+
 
 products_bp = Blueprint('products', __name__)
 db_manager = ProductDBManager()
@@ -32,6 +34,9 @@ def create_product():
         availability_id=data['availability_id']
     )
 
+    product_list_key = "product_list"
+    current_app.cache.delete_data(product_list_key)
+
     return jsonify(
         id=product.id,
         name=product.name,
@@ -46,8 +51,14 @@ def create_product():
 
 @products_bp.route('/products', methods=['GET'])
 def list_products():
+
+    product_list_key = "product_list"
+    cached_products = current_app.cache.get_data(product_list_key)
+    if cached_products:
+        return jsonify(json.loads(cached_products))
+
     products = db_manager.get_all_products()
-    return jsonify([
+    product_data = [
         {
             "id": p.id,
             "name": p.name,
@@ -59,24 +70,37 @@ def list_products():
             "category_id": p.category_id,
             "availability_id": p.availability_id
         } for p in products
-    ])
+    ]
+
+    current_app.cache.store_data(product_list_key, json.dumps(product_data), time_to_live=300)
+    return jsonify(product_data)
 
 @products_bp.route('/products/<int:product_id>', methods=['GET'])
 def get_product(product_id):
+
+    product_key = f"product:{product_id}"
+    cached_product = current_app.cache.get_data(product_key)
+    if cached_product:
+        return jsonify(json.loads(cached_product))
+
     product = db_manager.get_product_by_id(product_id)
     if not product:
         return Response(status=404)
-    return jsonify(
-        id=product.id,
-        name=product.name,
-        sku=product.sku,
-        description=product.description,
-        price=float(product.price),
-        entry_date=product.entry_date.isoformat(),
-        quantity=product.quantity,
-        category_id=product.category_id,
-        availability_id=product.availability_id
-    )
+    
+    product_data = {
+        "id": product.id,
+        "name": product.name,
+        "sku": product.sku,
+        "description": product.description,
+        "price": float(product.price),
+        "entry_date": product.entry_date.isoformat(),
+        "quantity": product.quantity,
+        "category_id": product.category_id,
+        "availability_id": product.availability_id
+    }
+
+    current_app.cache.store_data(product_key, json.dumps(product_data), time_to_live=300)
+    return jsonify(product_data)
 
 @products_bp.route('/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
@@ -95,6 +119,12 @@ def update_product(product_id):
     if not product:
         return Response(status=404)
 
+    product_key = f"product:{product_id}"
+    current_app.cache.delete_data(product_key)
+
+    product_list_key = "product_list"
+    current_app.cache.delete_data(product_list_key)
+
     return jsonify(message="Product updated")
 
 @products_bp.route('/products/<int:product_id>', methods=['DELETE'])
@@ -108,5 +138,12 @@ def delete_product(product_id):
     deleted = db_manager.delete_product(product_id)
     if not deleted:
         return Response(status=404)
+    
+    product_key = f"product:{product_id}"
+    current_app.cache.delete_data(product_key)
+
+    product_list_key = "product_list"
+    current_app.cache.delete_data(product_list_key)
+
     return jsonify(message="Product deleted")
 

@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, current_app
 from jwt_manager import JWT_Manager
 from products_manager import ProductDBManager
 from sales_manager import SaleDBManager
 from user_manager import UserDBManager
 from sqlalchemy import create_engine
+import json
 
 sales_bp = Blueprint('sales', __name__)
 
@@ -69,16 +70,25 @@ def get_invoice(invoice_id):
     user = jwt_manager.decode(token.replace("Bearer ", "")) if token else None
     if not user:
         return Response(status=403)
+    
+    invoice_key = f"invoice:{invoice_id}"
+    cached_invoice = current_app.cache.get_data(invoice_key)
+    if cached_invoice:
+        return jsonify(json.loads(cached_invoice))
 
     invoice = sale_manager.get_invoice(invoice_id)
     if not invoice:
         return jsonify({"message": "Invoice not found"}), 404
 
-    return jsonify({
+    invoice_data = {
         "invoice_id": invoice.id,
         "total": float(invoice.total),
         "created_at": invoice.created_at.isoformat()
-    })
+    }
+
+    current_app.cache.store_data(invoice_key, json.dumps(invoice_data), time_to_live=300)
+
+    return jsonify(invoice_data)
 
 @sales_bp.route("/invoices/<int:invoice_id>/return", methods=["POST"])
 def return_invoice(invoice_id):
@@ -90,5 +100,8 @@ def return_invoice(invoice_id):
     success = sale_manager.return_invoice(invoice_id)
     if not success:
         return jsonify({"message": "Return failed"}), 400
+    
+    invoice_key = f"invoice:{invoice_id}"
+    current_app.cache.delete_data(invoice_key)
 
     return jsonify({"message": "Return processed, stock updated"}), 200
