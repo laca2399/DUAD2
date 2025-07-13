@@ -3,7 +3,6 @@ from jwt_manager import JWT_Manager
 from products_manager import ProductDBManager
 from sales_manager import SaleDBManager
 from user_manager import UserDBManager
-from sqlalchemy import create_engine
 import json
 
 sales_bp = Blueprint('sales', __name__)

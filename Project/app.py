@@ -1,9 +1,9 @@
 from flask import Flask
 from database import db
 from models import Base
-from products import app as products_bp
-from sales import app as sales_bp
-from users import app as users_bp
+from products import  products_bp
+from sales import sales_bp
+from users import users_bp
 from cache_instance import cache_manager
 
 app = Flask(__name__)

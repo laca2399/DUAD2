@@ -1,7 +1,8 @@
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 import jwt
-import datetime
+from datetime import datetime, timezone, timedelta
+
 
 class JWT_Manager:
     def __init__(self, private_path="private.pem", public_path="public.pem", passphrase="!abc123abc!"):
@@ -23,8 +24,8 @@ class JWT_Manager:
         payload = {
             "sub": str(user_id),
             "role": role,  
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
-            "iat": datetime.datetime.utcnow()
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+            "iat": datetime.now(timezone.utc)
         }
         token = jwt.encode(payload, self.private_key, algorithm="RS256")
         print(f"Encoded token: {token}") 
