@@ -1,5 +1,5 @@
-from basemanager import BaseDBManager
-from models import Product
+from db.basemanager import BaseDBManager
+from db.models import Product
 from datetime import datetime, timezone
 
 

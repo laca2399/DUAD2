@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, Response, current_app
 from jwt_manager import JWT_Manager
-from products_manager import ProductDBManager
-from user_manager import UserDBManager
+from controllers.products_manager import ProductDBManager
+from controllers.user_manager import UserDBManager
 import json
 
 

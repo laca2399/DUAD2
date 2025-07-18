@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, Response, current_app
 from jwt_manager import JWT_Manager
-from user_manager import UserDBManager
+from controllers.user_manager import UserDBManager
 import json 
 
 users_bp = Blueprint('users', __name__)

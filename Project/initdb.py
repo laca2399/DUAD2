@@ -1,6 +1,6 @@
-from database import db
-from models import Base, User, Availability, Product_Category, Cart_Status
-from user_manager import UserDBManager
+from db.database import db
+from db.models import Base, User, Availability, Product_Category, Cart_Status
+from controllers.user_manager import UserDBManager
 
 Base.metadata.drop_all(db.engine)
 Base.metadata.create_all(db.engine)

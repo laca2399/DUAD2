@@ -1,7 +1,8 @@
-from basemanager import BaseDBManager
-from models import Cart, Cart_Products, Invoice, Sale, Product, Cart_Status
+from db.basemanager import BaseDBManager
+from db.models import Cart, Cart_Products, Invoice, Sale, Product, Cart_Status
 from datetime import datetime, timezone
 from sqlalchemy.orm.exc import NoResultFound
+
 class SaleDBManager(BaseDBManager):
 
     def create_cart(self, user_id):

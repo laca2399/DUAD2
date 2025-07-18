@@ -1,5 +1,5 @@
-from basemanager import BaseDBManager
-from models import User
+from db.basemanager import BaseDBManager
+from db.models import User
 
 class UserDBManager(BaseDBManager):
 
