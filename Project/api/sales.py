@@ -1,9 +1,8 @@
 from flask import Blueprint, request, jsonify, Response, current_app
 from jwt_manager import JWT_Manager
-from products_manager import ProductDBManager
-from sales_manager import SaleDBManager
-from user_manager import UserDBManager
-from sqlalchemy import create_engine
+from controllers.products_manager import ProductDBManager
+from controllers.sales_manager import SaleDBManager
+from controllers.user_manager import UserDBManager
 import json
 
 sales_bp = Blueprint('sales', __name__)

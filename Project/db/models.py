@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Boolean, VARCHAR
 from sqlalchemy.orm import declarative_base
-from datetime import datetime
+from datetime import datetime, timezone
 
 Base = declarative_base()
 
@@ -12,7 +12,7 @@ class User(Base):
     password = Column(String(255), nullable=False)
     name = Column(String(100), nullable=False)
     role = Column(String(50), nullable=False, default="client")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
     def __repr__(self):
@@ -60,15 +60,16 @@ class Product(Base):
     __tablename__ = 'products'
 
     id = Column(Integer, primary_key=True)
-    sku = Column(Integer, unique=True, nullable=False)
+    sku = Column(VARCHAR(36), unique=True, nullable=False)
     availability_id = Column(Integer, ForeignKey('availability.id'), nullable=False)
     category_id = Column(Integer, ForeignKey('product_categories.id'), nullable=False)
     name = Column(String(155), unique=True, nullable=False)
     description = Column(String(255), nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
     quantity = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    entry_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     def __repr__(self):
         return f"<Product(id={self.id}, sku={self.sku}, availability_id={self.availability_id}, category_id={self.category_id}, name={self.name}, description={self.description}, price={self.price}, quantity={self.quantity}, created_at={self.created_at}, updated_at={self.updated_at})>"
@@ -98,8 +99,8 @@ class Cart(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     cart_status_id = Column(Integer, ForeignKey('cart_status.id'), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     def __repr__(self):
         return f"<Cart(id={self.id}, user_id={self.user_id}, cart_status_id={self.cart_status_id}, created_at={self.created_at}, updated_at={self.updated_at})>"
@@ -114,7 +115,7 @@ class Invoice(Base):
     invoice_status_id = Column(Integer, ForeignKey('invoice_status.id'), nullable=False)
     billing_address = Column(String(255), nullable=False)
     total_amount = Column(Numeric(10, 2), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
 
     def __repr__(self):
@@ -133,3 +134,15 @@ class Cart_Products(Base):
     def __repr__(self):
         return f"<Cart_Status(id={self.id}, cart_id={self.cart_id}, product_id={self.product_id}, quantity={self.quantity})>"
     
+
+class Sale(Base):
+    __tablename__ = 'sales'
+
+    id = Column(Integer, primary_key=True)
+    invoice_id = Column(Integer, ForeignKey('invoices.id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    price = Column(Numeric(10, 2), nullable=False)
+
+    def __repr__(self):
+        return f"<Sale(id={self.id}, invoice_id={self.invoice_id}, product_id={self.product_id}, quantity={self.quantity}, price={self.price})>"

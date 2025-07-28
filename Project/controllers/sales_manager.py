@@ -1,30 +1,40 @@
-from basemanager import BaseDBManager
-from models import Cart, CartItem, Invoice, Sale, Product
-from datetime import datetime
+from db.basemanager import BaseDBManager
+from db.models import Cart, Cart_Products, Invoice, Sale, Product, Cart_Status
+from datetime import datetime, timezone
+from sqlalchemy.orm.exc import NoResultFound
 
 class SaleDBManager(BaseDBManager):
 
     def create_cart(self, user_id):
         with self.get_session() as session:
-            cart = Cart(user_id=user_id, created_at=datetime.utcnow(), status="active")
+            active_status = session.query(Cart_Status).filter_by(status="active").first()
+            if not active_status:
+                raise Exception("Active cart status not found in database.")
+            cart = Cart(user_id=user_id, cart_status_id=active_status.id, created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc))
             session.add(cart)
             session.commit()
+            session.refresh(cart)
             return cart
 
     def add_product_to_cart(self, cart_id, product_id, quantity):
         with self.get_session() as session:
             product = session.query(Product).filter_by(id=product_id).first()
-            cart = session.query(Cart).filter_by(id=cart_id, status="active").first()
+
+            active_status = session.query(Cart_Status).filter_by(status="active").first()
+            if not active_status:
+                return False
+            
+            cart = session.query(Cart).filter_by(id=cart_id, cart_status_id=active_status.id).first()
             if not product or not cart or product.quantity < quantity:
                 return False
-            item = CartItem(cart_id=cart_id, product_id=product_id, quantity=quantity)
+            item = Cart_Products(cart_id=cart_id, product_id=product_id, quantity=quantity)
             session.add(item)
             session.commit()
             return True
 
     def remove_product_from_cart(self, cart_id, product_id):
         with self.get_session() as session:
-            item = session.query(CartItem).filter_by(cart_id=cart_id, product_id=product_id).first()
+            item = session.query(Cart_Products).filter_by(cart_id=cart_id, product_id=product_id).first()
             if item:
                 session.delete(item)
                 session.commit()
@@ -33,8 +43,12 @@ class SaleDBManager(BaseDBManager):
 
     def checkout_cart(self, cart_id):
         with self.get_session() as session:
-            cart = session.query(Cart).filter_by(id=cart_id, status="active").first()
-            if not cart or not cart.items:
+            active_status = session.query(Cart_Status).filter_by(status="active").first()
+            if not active_status:
+                return None
+            
+            cart = session.query(Cart).filter_by(id=cart_id, cart_status_id=active_status.id).first()
+            if not cart or not hasattr(cart, 'items') or len(cart.items) == 0:
                 return None
 
             total = 0
@@ -45,21 +59,25 @@ class SaleDBManager(BaseDBManager):
                 total += product.price * item.quantity
                 product.quantity -= item.quantity
 
-            invoice = Invoice(user_id=cart.user_id, total=total, created_at=datetime.utcnow())
+            invoice = Invoice(user_id=cart.user_id, total=total, created_at=datetime.now(timezone.utc))
             session.add(invoice)
             session.commit()
 
             for item in cart.items:
-                product = session.query(Product).filter_by(id=item.product_id).first()
+                product_price = session.query(Product).filter_by(id=item.product_id).first().price
                 sale = Sale(
                     invoice_id=invoice.id,
                     product_id=item.product_id,
                     quantity=item.quantity,
-                    price=session.query(Product).filter_by(id=item.product_id).first().price
+                    price=product_price
                 )
                 session.add(sale)
+            
+            completed_status = session.query(Cart_Status).filter_by(status="completed").first()
+            if not completed_status:
+                raise Exception("Completed cart status not found in database.")
+            cart.cart_status_id = completed_status.id
 
-            cart.status = "completed"
             session.commit()
             return invoice
 
